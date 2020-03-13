@@ -1,49 +1,14 @@
 # импортируем необходимые компоненты
-from telegram import ReplyKeyboardMarkup, KeyboardButton
+
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 from settings import TG_TOKEN, TG_API_URL
-from bs4 import BeautifulSoup
-import requests
+from handlers import *
 
 
 
 
-def sms(bot, update):
-    print('Кто-то отправил команду /start. Что мне делать?') #вывод сообщения в консоль при отправке команды /start
-    bot.message.reply_text('Здорово, {}! \nПоболтаем?'
-                           .format(bot.message.chat.first_name), reply_markup=get_keyboard()) # отправим ответ
-    print(bot.message)
 
-def get_anekdote(bot, update):
-    receive = requests.get('http://anekdotme.ru/random') #отправляем запрос к странице
-    page = BeautifulSoup(receive.text, "html.parser") #подключаем html парсер, получаем текст страницы
-    find = page.select('.anekdot_text') #из страницы html получаем class= "anekdot_text"
-    for text in find:
-        page = (text.getText().strip())  # из class= "anekdot_text" получаем текст и убираем пробелы по сторонам
-    bot.message.reply_text(page) # отправляем один анекдот, последний
-    print(bot.message)
 
-# функция parrot, которая повторяет все, что пишет пользователь
-def parrot(bot, update):
-    print(bot.message.text) #печатаем на экран сообщение пользователя
-    bot.message.reply_text(bot.message.text) # отправляем обратно текст, который послал пользователь
-
-def get_contact(bot, update):
-    print(bot.message.contact)
-    bot.message.reply_text('{}, мы получили ваш номер телефона!'.format(bot.message.chat.first_name))
-    print(bot.mesage)
-
-def get_location(bot, update):
-    print(bot.message.location)
-    bot.message.reply_text('{}, мы получили ваше местоположение!'.format(bot.message.chat.first_name))
-    print(bot.mesage)
-
-def get_keyboard(): # объявляем новую функцию для клавиатуры
-    contact_button = KeyboardButton('Отправить контакты', request_contact=True)
-    location_button = KeyboardButton('Отправить геопозицию', request_location=True)
-    my_keyboard = ReplyKeyboardMarkup([['/start', 'Начать'], ['Анекдот'],
-                                       [contact_button, location_button]], resize_keyboard=True)  # добавляем кнопку (сделал несколько для ознакомления с функционалом
-    return my_keyboard
 
 # создаем функцию main, которая соединяется с платформой Telegram
 def main():
@@ -61,6 +26,20 @@ def main():
 
     my_bot.dispatcher.add_handler(MessageHandler(Filters.location, get_location))  # обрабатчик локации
 
+    my_bot.dispatcher.add_handler(
+        ConversationHandler(entry_points=[MessageHandler(Filters.regex('Заполнить анкету'), anketa_start)],
+                            states={
+                                "user_name": [MessageHandler(Filters.text, anketa_get_name)],
+                                "user_age": [MessageHandler(Filters.text, anketa_get_age)],
+                                "evaluation": [MessageHandler(Filters.regex('1|2|3|4|5'), anketa_get_evaluation)],
+                                "comment": [MessageHandler(Filters.regex('Пропустить'), anketa_exit_comment),
+                                            MessageHandler(Filters.text, anketa_comment)],
+                            },
+                            fallbacks=[MessageHandler(
+                                Filters.text | Filters.video | Filters.photo | Filters.document, dontknow)]
+                            )
+    )
+
     my_bot.dispatcher.add_handler(MessageHandler(Filters.text, parrot)) # обработчик текстового сообщения
 
 
@@ -70,4 +49,5 @@ def main():
 
 
 # вызываем и запускаем функицю main
-main()
+if __name__ == "__main__":
+    main()
