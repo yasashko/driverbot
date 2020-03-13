@@ -4,8 +4,11 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 from settings import TG_TOKEN, TG_API_URL
 from handlers import *
 
+import logging
 
-
+logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s',
+                    level=logging.INFO,
+                    filename='bot.log')
 
 
 
@@ -15,7 +18,7 @@ def main():
     #тело функции, описываем функцию (что она будет делать)
     # создадим переменную my_bot, с помощью которой будем взаимодействовать с нашим ботом
     my_bot = Updater (TG_TOKEN, TG_API_URL, use_context=True)
-
+    logging.info('Start bot')
     my_bot.dispatcher.add_handler(CommandHandler('start', sms)) # обработчик команды start
 
     my_bot.dispatcher.add_handler(MessageHandler(Filters.regex('Начать'), sms)) # назначаю команду для кнопки "Начать"
